@@ -1,0 +1,18 @@
+.weather-card {
+    background: linear-gradient(to right, #cde7e1, #f2d6b3);
+    color: #000;
+    border-radius: 20px;
+}
+
+.chart-placeholder {
+    height: 200px;
+    background: #777;
+    border-radius: 10px;
+}
+
+.forecast-card {
+    background: #444;
+    color: white;
+    border-radius: 10px;
+    padding: 20px;
+}
