@@ -39,10 +39,18 @@ function saveToHistory(city) {
 }
 
 function getWeather(city) {
+    const errorDisplay = document.getElementById("errorMessage");
     fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&units=imperial&appid=${API_KEY}`)
         .then(res => res.json())
         .then(data => {
+            if (data.cod === "404") {
+                errorDisplay.textContent = "City not found. Please check spelling.";
+                errorDisplay.style.display = "block";
+                return;
+            }
             if (data.cod !== 200) return;
+
+            errorDisplay.style.display = "none";
             currentCity = data.name;
             document.getElementById("city").textContent = data.name;
             document.getElementById("temp").textContent = Math.round(data.main.temp) + "°F";
@@ -61,6 +69,28 @@ function getWeather(city) {
             updateDropdown();
         });
 }
+
+function validateAndSearch() {
+    const input = document.getElementById("searchInput");
+    const errorDisplay = document.getElementById("errorMessage");
+    const cityValue = input.value.trim();
+
+    if (cityValue === "") {
+        errorDisplay.textContent = "Please enter a city name first.";
+        errorDisplay.style.display = "block";
+        return;
+    }
+    errorDisplay.style.display = "none";
+    getWeather(cityValue);
+}
+
+document.getElementById("searchBtn").onclick = validateAndSearch;
+
+document.getElementById("searchInput").addEventListener("keypress", (event) => {
+    if (event.key === "Enter") {
+        validateAndSearch();
+    }
+});
 
 document.getElementById("favoriteIcon").onclick = () => {
     if (!currentCity) return;
@@ -91,6 +121,7 @@ function getForecast(city) {
     fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${city}&units=imperial&appid=${API_KEY}`)
         .then(res => res.json())
         .then(data => {
+            if (data.cod !== "200") return;
             const daily = data.list.filter((f, i) => i % 8 === 0).slice(0, 5);
             const labels = daily.map(d => new Date(d.dt * 1000).toLocaleDateString("en-US", { weekday: "short" }));
             const highs = daily.map(d => Math.round(d.main.temp_max));
@@ -118,7 +149,7 @@ function getForecast(city) {
                 const div = document.createElement("div");
                 div.className = "col";
                 div.innerHTML = `<div class="forecast-card">
-                    <p class="mb-0 small">${new Date(d.dt * 1000).toLocaleDateString("en-US", {weekday: 'short'}).toUpperCase()}</p>
+                    <p class="mb-0 small">${new Date(d.dt * 1000).toLocaleDateString("en-US", { weekday: 'short' }).toUpperCase()}</p>
                     <img src="https://openweathermap.org/img/wn/${d.weather[0].icon}.png">
                     <p class="mb-0 small fw-bold">${Math.round(d.main.temp)}°F</p>
                 </div>`;
@@ -127,24 +158,23 @@ function getForecast(city) {
         });
 }
 
-document.getElementById("searchBtn").onclick = () => {
-    getWeather(document.getElementById("searchInput").value);
-};
-
 function init() {
-    const f = getFavorites();
-    if (f.length > 0) {
-        getWeather(f[0]);
-    } else if (navigator.geolocation) {
+    if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             p => {
                 fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${p.coords.latitude}&lon=${p.coords.longitude}&units=imperial&appid=${API_KEY}`)
                     .then(r => r.json()).then(d => getWeather(d.name));
             },
-            () => getWeather("Tokyo")
+            () => {
+                const f = getFavorites();
+                if (f.length > 0) getWeather(f[0]);
+                else getWeather("Tokyo");
+            }
         );
     } else {
-        getWeather("Tokyo");
+        const f = getFavorites();
+        if (f.length > 0) getWeather(f[0]);
+        else getWeather("Tokyo");
     }
 }
 
