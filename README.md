@@ -4,7 +4,8 @@
 // Description: 
 // - Developed a weather dashboard that fetches real-time data using OpenWeather API. 
 
-// Peer Reviewed by:
+// Peer Reviewed by: Sammer Saqa
+You nailed the hard part of the data and the 'favorites' feature work perfectly! To finish it off, I'd suggest making the search bar work with the Enter key and adding those cloudy backgrounds from the Figma file to the bottom cards. Also, adding a quick 'City not found' alert would help users if they make a typo.
 
 // Peer Reviewed by:
 
