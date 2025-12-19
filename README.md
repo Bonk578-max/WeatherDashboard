@@ -5,7 +5,7 @@
 // - Developed a weather dashboard that fetches real-time data using OpenWeather API. 
 
 // Peer Reviewed by: Sammer Saqa
-You nailed the hard part of the data and the 'favorites' feature work perfectly! To finish it off, I'd suggest making the search bar work with the Enter key and adding those cloudy backgrounds from the Figma file to the bottom cards. Also, adding a quick 'City not found' alert would help users if they make a typo.
+You did an awesome job getting the hard stuff to work! The weather data, the 'favorites' list, and the charts are all spot on. To make it look more like the original Figma, try swapping out those plain grey boxes for cool, dark photos of clouds or the sky, it'll make the app feel much more professional. You can also make it look cleaner by using thin, simple icons instead of the colorful ones, and by making the main temperature number much bigger and bolder so it's the first thing people see. Finally, make sure the search bar works when you hit the 'Enter' key and add a quick message if someone types a city name wrong. 
 
 // Peer Reviewed by:
 
