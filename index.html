@@ -3,76 +3,66 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>City Weather Forecast</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="Styles/style.css">
 </head>
 
-<body class="bg-dark text-light">
-
-    <div class="container my-4 text-center">
-        <h2>Weather Overview</h2>
-    </div>
-
-    <div class="container my-4">
-        <div class="search-bar mx-auto" style="max-width: 600px;">
-            <input type="text" id="searchInput" class="search-input form-control" placeholder="Enter city name">
-
-            <i id="favoriteIcon" class="fas fa-heart favorite-icon"></i>
-
-            <button id="searchBtn" class="btn btn-primary">
-                <i class="fas fa-search search-icon"></i>
-            </button>
-
-            <div id="recentSearchesDropdown" class="recent-searches-dropdown">
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-end mb-5">
+            <div class="col-md-4 position-relative">
+                <div class="search-container">
+                    <input type="text" id="searchInput" placeholder="Search">
+                    <i id="searchBtn" class="fas fa-search me-3"></i>
+                    <i id="favoriteIcon" class="fas fa-heart"></i>
+                </div>
+                <div id="recentSearchesDropdown" class="dropdown-menu w-100"></div>
             </div>
         </div>
-    </div>
-
-    <div class="container">
 
         <div class="row g-4">
-
-            <div class="col-md-6">
-                <div class="card p-4 current-weather-card">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <p id="city" class="h4">Location</p>
-                            <h1 id="temp" class="display-3">--°F</h1>
-                        </div>
-                        <img id="currentIcon" src="" alt="Weather Icon" class="main-weather-icon">
+            <div class="col-lg-6">
+                <div class="main-card">
+                    <div class="location-chip">
+                        <i class="fas fa-map-marker-alt"></i> <span id="city">--</span>
                     </div>
-
-                    <p id="feelsLike" class="h6 mt-2">Feels like: --</p>
-                    <p id="description" class="lead"></p>
-
-                    <div class="d-flex gap-4 mt-3 pt-3 border-top">
-                        <span id="visibility">Visibility: --</span>
-                        <span id="humidity">Humidity: --</span>
+                    <div class="weather-info">
+                        <p class="mb-0 fw-bold mt-4">Weather</p>
+                        <p class="text-muted small">Now</p>
+                        <img id="currentIcon" src="" alt="" class="floating-weather-icon">
+                        <h1 id="temp">--°F</h1>
+                        <p id="feelsLike" class="small">--</p>
+                    </div>
+                    <div class="stats-pill">
+                        <div class="stat-item border-end border-dark">
+                            <span>Visibility</span>
+                            <strong id="visibility">--</strong>
+                        </div>
+                        <div class="stat-item">
+                            <span>Humidity</span>
+                            <strong id="humidity">--</strong>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="col-md-6">
-                <div class="card p-4 text-center chart-box">
-                    <h5>Daily Highs and Lows</h5>
-                    <div class="chart-container mt-3">
+            <div class="col-lg-6">
+                <div class="chart-card">
+                    <p class="text-center small text-white-50">High And Lows</p>
+                    <div class="canvas-container">
                         <canvas id="highLowChart"></canvas>
                     </div>
                 </div>
             </div>
         </div>
 
-        <h3 class="mt-5 mb-3 text-center">5-Day Forecast</h3>
-
-        <div class="row row-cols-1 row-cols-md-5 g-4 text-center" id="forecast">
-
-        </div>
-
+        <div id="forecast" class="row mt-5"></div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="Apps/script.js"></script>
 </body>
 

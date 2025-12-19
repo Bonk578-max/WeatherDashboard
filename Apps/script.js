@@ -1,338 +1,151 @@
-const LAST_CITIES_KEY = 'weatherAppLastCities';
-const FAVORITE_CITY_KEY = 'weatherAppFavoriteCity';
-const MAX_CITIES = 5;
-
-function getRecentCities() {
-    const citiesJson = localStorage.getItem(LAST_CITIES_KEY);
-    return citiesJson ? JSON.parse(citiesJson) : [];
-}
-
-function saveCityToRecents(city) {
-    if (!city) return;
-
-    let cities = getRecentCities();
-
-    cities = cities.filter(c => c.toLowerCase() !== city.toLowerCase());
-
-    cities.unshift(city);
-
-    if (cities.length > MAX_CITIES) {
-        cities = cities.slice(0, MAX_CITIES);
-    }
-
-    localStorage.setItem(LAST_CITIES_KEY, JSON.stringify(cities));
-}
-
-function getFavoriteCity() {
-    return localStorage.getItem(FAVORITE_CITY_KEY);
-}
-
-function toggleFavorite(city, isFavorite) {
-    if (isFavorite) {
-        localStorage.setItem(FAVORITE_CITY_KEY, city);
-    } else {
-        if (getFavoriteCity() === city) {
-            localStorage.removeItem(FAVORITE_CITY_KEY);
-        }
-    }
-}
-
 const API_KEY = "eb1c4bda4384855215d07d22985d368f";
-
-const searchBtn = document.getElementById("searchBtn");
-const searchInput = document.getElementById("searchInput");
-const favoriteIcon = document.getElementById("favoriteIcon");
-const recentDropdown = document.getElementById("recentSearchesDropdown");
-
-let highLowChartInstance = null;
+let chartInstance = null;
 let currentCity = "";
 
-function updateFavoriteIcon(city) {
-    const favorite = getFavoriteCity();
-    if (favorite && favorite.toLowerCase() === city.toLowerCase()) {
-        favoriteIcon.classList.add('is-favorite');
-    } else {
-        favoriteIcon.classList.remove('is-favorite');
+function getFavorites() {
+    const f = localStorage.getItem('weather_favs');
+    return f ? JSON.parse(f) : [];
+}
+
+function getRecents() {
+    const r = localStorage.getItem('weather_last');
+    return r ? JSON.parse(r) : [];
+}
+
+function updateDropdown() {
+    const menu = document.getElementById("recentSearchesDropdown");
+    const favs = getFavorites().slice(0, 3);
+    const recents = getRecents().filter(c => !favs.includes(c)).slice(0, 5);
+    menu.innerHTML = "";
+    const list = [...favs.map(c => ({ n: c, f: true })), ...recents.map(c => ({ n: c, f: false }))];
+    if (list.length > 0) {
+        list.forEach(item => {
+            const div = document.createElement("div");
+            div.className = "dropdown-item d-flex justify-content-between align-items-center";
+            div.innerHTML = `<span>${item.n}</span> ${item.f ? '<span class="fav-tag">FAV</span>' : ''}`;
+            div.onclick = () => {
+                getWeather(item.n);
+                menu.classList.remove("show");
+            };
+            menu.appendChild(div);
+        });
     }
 }
 
-function renderRecentCities() {
-    const cities = getRecentCities();
-    recentDropdown.innerHTML = '';
-
-    if (cities.length === 0) {
-        recentDropdown.style.display = 'none';
-        return;
-    }
-
-    cities.forEach(city => {
-        const favorite = getFavoriteCity();
-        const isFavorite = favorite && favorite.toLowerCase() === city.toLowerCase();
-
-        const item = document.createElement('div');
-        item.classList.add('recent-search-item');
-        item.classList.add('p-2');
-
-        const cityText = document.createElement('span');
-        cityText.classList.add('dropdown-city-text');
-        cityText.textContent = city;
-        cityText.addEventListener('click', () => {
-            searchInput.value = city;
-            getWeather(city);
-            recentDropdown.style.display = 'none';
-        });
-
-        const favIcon = document.createElement('span');
-        favIcon.classList.add('dropdown-favorite-icon', 'fas', 'fa-heart');
-        if (isFavorite) {
-            favIcon.classList.add('is-favorite');
-        }
-
-        favIcon.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const currentlyFavorite = favIcon.classList.toggle('is-favorite');
-            toggleFavorite(city, currentlyFavorite);
-
-            renderRecentCities();
-            updateFavoriteIcon(city);
-        });
-
-        item.appendChild(cityText);
-        item.appendChild(favIcon);
-        recentDropdown.appendChild(item);
-    });
-
-    if (document.activeElement === searchInput || searchInput.value.length > 0) {
-        recentDropdown.style.display = 'block';
-    }
-}
-
-function getGeolocationWeather() {
-    const favoriteCity = getFavoriteCity();
-    if (favoriteCity) {
-        getWeather(favoriteCity);
-        return;
-    }
-
-    if (!navigator.geolocation) {
-        getWeather("London");
-        return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-        (position) => {
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
-
-            const currentURL = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=imperial&appid=${API_KEY}`;
-
-            fetch(currentURL)
-                .then(res => res.json())
-                .then(data => {
-                    updateCurrentWeather(data);
-                    getForecast(data.name);
-
-                    saveCityToRecents(data.name);
-                    currentCity = data.name;
-                    updateFavoriteIcon(currentCity);
-                    renderRecentCities();
-                })
-                .catch(err => {
-                    getWeather("London");
-                });
-        },
-        (error) => {
-            document.getElementById("city").textContent = "Location Denied or Unavailable";
-            getWeather("London");
-        }
-    );
+function saveToHistory(city) {
+    let r = getRecents().filter(c => c !== city);
+    r.unshift(city);
+    localStorage.setItem('weather_last', JSON.stringify(r.slice(0, 10)));
 }
 
 function getWeather(city) {
-    if (!city) return;
-
-    const currentURL = `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=imperial&appid=${API_KEY}`;
-
-    fetch(currentURL)
+    fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&units=imperial&appid=${API_KEY}`)
         .then(res => res.json())
         .then(data => {
-            if (data.cod === "404") {
-                alert("City not found. Please try again.");
-                return;
-            }
-
-            updateCurrentWeather(data);
-            getForecast(city);
-
-            saveCityToRecents(city);
+            if (data.cod !== 200) return;
             currentCity = data.name;
-            updateFavoriteIcon(currentCity);
-            renderRecentCities();
-
-        })
-        .catch(error => {
-            alert("Could not fetch weather data.");
+            document.getElementById("city").textContent = data.name;
+            document.getElementById("temp").textContent = Math.round(data.main.temp) + "°F";
+            document.getElementById("feelsLike").textContent = "Feels like " + Math.round(data.main.feels_like) + "°F";
+            document.getElementById("visibility").textContent = (data.visibility / 1000).toFixed(1) + "km";
+            document.getElementById("humidity").textContent = data.main.humidity + "%";
+            const icon = document.getElementById("currentIcon");
+            if (icon) icon.src = `https://openweathermap.org/img/wn/${data.weather[0].icon}@4x.png`;
+            if (getFavorites().includes(data.name)) {
+                document.getElementById("favoriteIcon").classList.add("is-favorite");
+            } else {
+                document.getElementById("favoriteIcon").classList.remove("is-favorite");
+            }
+            saveToHistory(data.name);
+            getForecast(data.name);
+            updateDropdown();
         });
 }
 
-function updateCurrentWeather(data) {
-    document.getElementById("city").textContent = data.name;
-    document.getElementById("temp").textContent = `${Math.round(data.main.temp)}°F`;
-    document.getElementById("feelsLike").textContent =
-        `Feels like: ${Math.round(data.main.feels_like)}°F`;
-    document.getElementById("humidity").textContent =
-        `Humidity: ${data.main.humidity}%`;
-    document.getElementById("visibility").textContent =
-        `Visibility: ${data.visibility / 1000} km`;
-    document.getElementById("description").textContent =
-        `${data.weather[0].description.replace(/\b\w/g, l => l.toUpperCase())}`;
-    document.getElementById("currentIcon").src =
-        `https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`;
-}
-
-function createHighLowChart(labels, highs, lows) {
-    const chartContainer = document.querySelector('.chart-container');
-
-    const oldCanvas = document.getElementById('highLowChart');
-    if (oldCanvas) {
-        oldCanvas.remove();
+document.getElementById("favoriteIcon").onclick = () => {
+    if (!currentCity) return;
+    let f = getFavorites();
+    if (f.includes(currentCity)) {
+        f = f.filter(c => c !== currentCity);
+        document.getElementById("favoriteIcon").classList.remove("is-favorite");
+    } else {
+        f.unshift(currentCity);
+        document.getElementById("favoriteIcon").classList.add("is-favorite");
     }
+    localStorage.setItem('weather_favs', JSON.stringify(f));
+    updateDropdown();
+};
 
-    const newCanvas = document.createElement('canvas');
-    newCanvas.id = 'highLowChart';
-    chartContainer.appendChild(newCanvas);
+document.getElementById("searchInput").onfocus = () => {
+    updateDropdown();
+    document.getElementById("recentSearchesDropdown").classList.add("show");
+};
 
-    const ctx = newCanvas.getContext('2d');
-
-    highLowChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                    label: 'High Temp (°F)',
-                    data: highs,
-                    backgroundColor: 'rgba(255, 99, 132, 0.8)',
-                },
-                {
-                    label: 'Low Temp (°F)',
-                    data: lows,
-                    backgroundColor: 'rgba(54, 162, 235, 0.8)',
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: false,
-                },
-            },
-            plugins: {
-                tooltip: {
-                    enabled: false
-                },
-                hover: {
-                    mode: null
-                }
-            }
-        }
-    });
-}
+document.addEventListener("click", (e) => {
+    if (!e.target.closest(".col-md-4")) {
+        document.getElementById("recentSearchesDropdown").classList.remove("show");
+    }
+});
 
 function getForecast(city) {
-    const forecastURL = `https://api.openweathermap.org/data/2.5/forecast?q=${city}&units=imperial&appid=${API_KEY}`;
-
-    fetch(forecastURL)
+    fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${city}&units=imperial&appid=${API_KEY}`)
         .then(res => res.json())
         .then(data => {
-            const forecastEl = document.getElementById("forecast");
-            forecastEl.innerHTML = "";
-
-            const processedForecasts = [];
-            const uniqueDates = new Set();
-
-            for (const item of data.list) {
-                const dateText = item.dt_txt.split(" ")[0];
-
-                if (!uniqueDates.has(dateText) && processedForecasts.length < 5) {
-                    uniqueDates.add(dateText);
-                    processedForecasts.push(item);
+            const daily = data.list.filter((f, i) => i % 8 === 0).slice(0, 5);
+            const labels = daily.map(d => new Date(d.dt * 1000).toLocaleDateString("en-US", { weekday: "short" }));
+            const highs = daily.map(d => Math.round(d.main.temp_max));
+            const lows = daily.map(d => Math.round(d.main.temp_min));
+            if (chartInstance) chartInstance.destroy();
+            chartInstance = new Chart(document.getElementById('highLowChart'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { data: highs, backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: 5 },
+                        { data: lows, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 5 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { display: false }, x: { ticks: { color: "#999" }, grid: { display: false } } }
                 }
-                if (processedForecasts.length >= 5) {
-                    break;
-                }
-            }
-
-            const chartData = processedForecasts;
-
-            const labels = chartData.map(day =>
-                new Date(day.dt * 1000).toLocaleDateString("en-US", { weekday: "short" })
-            );
-
-            const highs = chartData.map(day => Math.round(day.main.temp_max));
-            const lows = chartData.map(day => Math.round(day.main.temp_min));
-
-            createHighLowChart(labels, highs, lows);
-
-            chartData.forEach(day => {
-                const col = document.createElement("div");
-                col.className = "col";
-
-                col.innerHTML = `
-                    <div class="forecast-day-card p-3 shadow">
-                        <p class="mb-1 fw-bold">${new Date(day.dt * 1000).toLocaleDateString("en-US", { weekday: "short" })}</p>
-                        <img src="https://openweathermap.org/img/wn/${day.weather[0].icon}@2x.png" alt="${day.weather[0].description}" class="weather-icon">
-                        <p class="mb-1">${day.weather[0].main}</p>
-                        <p class="small mb-0">High: <span class="text-danger">${Math.round(day.main.temp_max)}°F</span></p>
-                        <p class="small mb-0">Low: <span class="text-primary">${Math.round(day.main.temp_min)}°F</span></p>
-                    </div>
-                `;
-
-                forecastEl.appendChild(col);
+            });
+            const container = document.getElementById("forecast");
+            container.innerHTML = "";
+            daily.forEach(d => {
+                const div = document.createElement("div");
+                div.className = "col";
+                div.innerHTML = `<div class="forecast-card">
+                    <p class="mb-0 small">${new Date(d.dt * 1000).toLocaleDateString("en-US", {weekday: 'short'}).toUpperCase()}</p>
+                    <img src="https://openweathermap.org/img/wn/${d.weather[0].icon}.png">
+                    <p class="mb-0 small fw-bold">${Math.round(d.main.temp)}°F</p>
+                </div>`;
+                container.appendChild(div);
             });
         });
 }
 
+document.getElementById("searchBtn").onclick = () => {
+    getWeather(document.getElementById("searchInput").value);
+};
 
-favoriteIcon.addEventListener("click", () => {
-    if (!currentCity) return;
-
-    const isCurrentlyFavorite = favoriteIcon.classList.contains('is-favorite');
-
-    if (isCurrentlyFavorite) {
-        toggleFavorite(currentCity, false);
-        favoriteIcon.classList.remove('is-favorite');
+function init() {
+    const f = getFavorites();
+    if (f.length > 0) {
+        getWeather(f[0]);
+    } else if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            p => {
+                fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${p.coords.latitude}&lon=${p.coords.longitude}&units=imperial&appid=${API_KEY}`)
+                    .then(r => r.json()).then(d => getWeather(d.name));
+            },
+            () => getWeather("Tokyo")
+        );
     } else {
-        toggleFavorite(currentCity, true);
-        favoriteIcon.classList.add('is-favorite');
+        getWeather("Tokyo");
     }
+}
 
-    renderRecentCities();
-});
-
-
-searchBtn.addEventListener("click", () => {
-    const city = searchInput.value.trim();
-    if (city) {
-        getWeather(city);
-    }
-});
-
-searchInput.addEventListener("input", () => {
-    if (searchInput.value.length > 0) {
-        renderRecentCities();
-        recentDropdown.style.display = 'block';
-    } else {
-        renderRecentCities();
-    }
-});
-
-searchInput.addEventListener("focus", renderRecentCities);
-searchInput.addEventListener("blur", () => {
-    setTimeout(() => {
-        recentDropdown.style.display = 'none';
-    }, 200);
-});
-
-getGeolocationWeather();
+init();
